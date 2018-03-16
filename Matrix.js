@@ -484,6 +484,3 @@ class Matrix {
     return str;
   }
 }
-
-var m = new Matrix(0);
-console.log(`${m}`);
