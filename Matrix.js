@@ -1,3 +1,30 @@
+/**
+ * Custom exception that gets thrown when the matrix cannot 
+ * be created with the given dimensions.
+ * @extends Error
+ */
+class InvalidDimension extends Error {
+  
+  /**
+   * Creates exception that will display what dimension is not 
+   * valid and what the reason is.
+   * @param {string} argName - The name of the argument.
+   * @param {*} value - The value of the argument.
+   * @param {string} reason - Why the argument value is invalid.
+   */
+  constructor(argName, value, reason) {
+    var message = `Cannot create matrix with ${value} ${argName} because ${reason}.`;
+    super(message);
+    this.name = this.constructor.name;
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    } else { 
+      this.stack = (new Error(message)).stack; 
+    }
+  }
+  
+}
+
 /** Class representing a matrix. */
 class Matrix {
   
@@ -8,10 +35,38 @@ class Matrix {
    * rows x rows.
    * @param {Number} rows - The number of rows in the matrix.
    * @param {Number} cols - The number of cols in the matrix.
+   * @throws {InvalidDimension} The specified dimensions must be integers greater than 0.
    */
   constructor(rows, cols) {
     this.rows = rows;
     this.cols = cols ? cols : rows;
+    
+    // Error handling when creating matrix:
+    
+    // First, make sure that the dimensions are numbers
+    if (isNaN(this.rows))
+      throw new InvalidDimension("rows", this.rows, `'${this.rows}' is not a number`);
+    if (isNaN(this.cols))
+      throw new InvalidDimension("columns", this.cols, `'${this.cols}' is not a number`);
+    
+    // Since we know that the arguments are numbers,
+    // convert the numbers into a readable format
+    // (in case of strings)
+    this.rows = +`${this.rows}`;
+    this.cols = +`${this.cols}`;
+    
+    // Second, make sure that the dimensions are integers
+    if (this.rows !== parseInt(this.rows, 10))
+      throw new InvalidDimension("rows", this.rows, `'${this.rows}' is not an integer`);
+    if (this.cols !== parseInt(this.cols, 10))
+      throw new InvalidDimension("columns", this.cols, `'${this.cols}' is not an integer`);
+    
+    // Finally, make sre that the dimensions are positive
+    if (this.rows < 1)
+      throw new InvalidDimension("rows", this.rows, `'${this.rows}' is not positive`);
+    if (this.cols < 1)
+      throw new InvalidDimension("columns", this.cols, `'${this.cols}' is not positive`);
+    
     
     this.matrix = []; // Matrices are represented with arrays
     // Initialize all entries of the matrix to zeros
@@ -429,3 +484,6 @@ class Matrix {
     return str;
   }
 }
+
+var m = new Matrix(0);
+console.log(`${m}`);
