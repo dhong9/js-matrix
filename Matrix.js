@@ -25,6 +25,57 @@ class InvalidDimension extends Error {
   
 }
 
+/**
+ * Custom exception that gets thrown when the matrix 
+ * has to be square.
+ * @extends Error
+ */
+class NonsquareMatrix extends Error {
+  
+  /**
+   * Creates exception that will display what cannot be done 
+   * without a nonsquare matrix.
+   * @param {Matrix} matrix - The nonsquare matrix.
+   * @param {string} inability - What could not be done (due to nonsquare matrix).
+   */
+  constructor(matrix, inability) {
+    var message = `${inability} from nonsquare matrix. The number of rows and the number of columns must be the same. Your matrix has ${matrix.rows} rows and ${matrix.cols} columns.`;
+    super(message);
+    this.name = this.constructor.name;
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    } else { 
+      this.stack = (new Error(message)).stack; 
+    }
+  }
+  
+}
+
+/**
+ * Custom exception that gets thrown when matrices being 
+ * added or subtracted have dimensions.
+ * @extends Error
+ */
+class DifferentDimensions extends Error {
+  
+  /**
+   * Creates exception that will display dimensions of the 
+   * matrices with disagreeing dimensions.
+   * @param {Matrix} matrix1 - The left matrix with dimensions that disagree with the right matrix.
+   * @param {Matrix} matrix2 - The right matrix with dimensions that disagree with the left matrix.
+   */
+  constructor(matrix1, matrix2, op) {
+    var message = `Cannot ${op} matrices with different dimensions. The left matrix has ${matrix1.rows} row(s) and ${matrix1.cols} column(s) whereas the right matrix has ${matrix2.rows} row(s) and ${matrix2.cols} column(s)`;
+    super(message);
+    this.name = this.constructor.name;
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    } else { 
+      this.stack = (new Error(message)).stack; 
+    }
+  }
+}
+
 /** Class representing a matrix. */
 class Matrix {
   
@@ -61,7 +112,7 @@ class Matrix {
     if (this.cols !== parseInt(this.cols, 10))
       throw new InvalidDimension("columns", this.cols, `'${this.cols}' is not an integer`);
     
-    // Finally, make sre that the dimensions are positive
+    // Finally, make sure that the dimensions are positive
     if (this.rows < 1)
       throw new InvalidDimension("rows", this.rows, `'${this.rows}' is not positive`);
     if (this.cols < 1)
@@ -131,8 +182,14 @@ class Matrix {
   
   /**
    * Turns the current matrix into an identity matrix.
+   * @throws {NonsquareMatrix} Identity matrices can only be created from square matrices.
    */
   identity() {
+    
+    // Make sure that the matrix is square
+    if (this.rows !== this.cols)
+      throw new NonsquareMatrix(this, "Unable to create identity matrix");
+    
     this.zeros(); // Set all elements of the matrix to 0
     
     // Set the diagonal of zero-matrix to 1
@@ -201,8 +258,15 @@ class Matrix {
   /**
    * Adds a given matrix to the current matrix.
    * @param {Matrix} matrix - The matrix to add to the current matrix.
+   * @throws {DifferentDimensions} Matrices being added 
+   * together must have the same dimensions as each other.
    */
   add(matrix) {
+    // Make sure that the matrices being added together have
+    // the same dimensions
+    if (this.rows !== matrix.rows || this.cols !== matrix.cols)
+      throw new DifferentDimensions(this, matrix, "add");
+    
     // Loop to add the matrices component-wise
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
@@ -218,8 +282,15 @@ class Matrix {
    * @param {Matrix} matrix1 - One of the matrices to add.
    * @param {Matrix} matrix2 - Another matrix to add.
    * @return {Matrix} The sum of the two given matrices.
+   * @throws {DifferentDimensions} Matrices being added 
+   * together must have the same dimensions as each other.
    */
   static add(matrix1, matrix2) {
+    // Make sure that the matrices being added together have
+    // the same dimensions
+    if (matrix1.rows !== matrix2.rows || matrix1.cols !== matrix2.cols)
+      throw new DifferentDimensions(matrix1, matrix2, "add");
+    
     var rows = matrix1.rows, cols = matrix1.cols; // Get number of  rows and columns
     var sum = new Matrix(rows, cols); // New matrix to store the sum in
     
@@ -236,8 +307,15 @@ class Matrix {
   /**
    * Subtracts the given matrix from the current matrix
    * @param {Matrix} matrix - The matrix to subtract the current matrix from.
+   * @throws {DifferentDimensions} Matrices being subtracted 
+   * from each other must have the same dimensions as each other.
    */
   subtract(matrix) {
+    // Make sure that the matrices being subtracted from 
+    // each other the same dimensions
+    if (this.rows !== matrix.rows || this.cols !== matrix.cols)
+      throw new DifferentDimensions(this, matrix, "subtract");
+      
     // Loop to subtract the matrices component-wise
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
@@ -253,8 +331,15 @@ class Matrix {
    * @param {Matrix} matrix1 - The matrix to be subtracted from.
    * @param {Matrix} matrix2 - The matrix to subtract the first matrix from.
    * @return {Matrix} The result of the second matrix subtracted from the first matrix.
+   * @throws {DifferentDimensions} Matrices being subtracted 
+   * from each other must have the same dimensions as each other.
    */
   static subtract(matrix1, matrix2) {
+    // Make sure that the matrices being subtracted from 
+    // each other the same dimensions
+    if (matrix1.rows !== matrix2.rows || matrix1.cols !== matrix2.cols)
+      throw new DifferentDimensions(matrix1, matrix2, "subtract");
+      
     var rows = matrix1.rows, cols = matrix1.cols; // Get number of  rows and columns
     var diff = new Matrix(rows, cols); // New matrix to store the difference in
     
