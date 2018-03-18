@@ -74,6 +74,60 @@ class DifferentDimensions extends Error {
       this.stack = (new Error(message)).stack; 
     }
   }
+  
+}
+
+/**
+ * Custom exception that gets thrown when matrices being 
+ * multiplied together have disagreeing inner dimensions. 
+ * In other words, the columns of the left matrix is not the 
+ * same as the rows of the right matrix.
+ * @extends Error
+ */
+class InnerDimensions extends Error {
+  
+  /**
+   * Creates exception that will display where the inner 
+   * dimensions disagree of two matrices that are being 
+   * multiplied together.
+   * @param {Matrix} matrix1 - The left matrix with a different 
+   * number of columns from he right matrix's rows.
+   * @param {Matrix} matrix2 - The right matrix with a different 
+   * number of rows as the left matrix's columns.
+   */
+  constructor(matrix1, matrix2) {
+    var message = `Cannot multiply matrices with different inner dimensions. The left matrix has ${matrix1.cols} column(s) whereas the right matrix has ${matrix2.rows} row(s).`;
+    super(message);
+    this.name = this.constructor.name;
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    } else { 
+      this.stack = (new Error(message)).stack; 
+    }
+  }
+  
+}
+
+/**
+ * Custom exception for matrices with determinants of 0.
+ * @extends Error
+ */
+class ZeroDeterminant extends Error {
+  
+  /**
+   * Creates exception that will throw for non-invertible matrices.
+   */
+  constructor() {
+    var message = "Cannot invert matrix with determinant of 0!";
+    super(message);
+    this.name = this.constructor.name;
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    } else { 
+      this.stack = (new Error(message)).stack; 
+    }
+  }
+  
 }
 
 /** Class representing a matrix. */
@@ -83,10 +137,10 @@ class Matrix {
    * Creates a matrix of dimensions rows x cols. 
    * If the number of columns is not specified, then
    * the matrix will be a square matrix of dimensions
-   * rows x rows.
+   * rows x rows. 
+   * All entries are automatically initialized to 0.
    * @param {Number} rows - The number of rows in the matrix.
    * @param {Number} cols - The number of cols in the matrix.
-   * @throws {InvalidDimension} The specified dimensions must be integers greater than 0.
    */
   constructor(rows, cols) {
     this.rows = rows;
@@ -132,6 +186,10 @@ class Matrix {
   
   /**
    * Sets all entries of the matrix to 0.
+   * @example <caption>Example of setting all entries of a 2x2
+   * matrix of ones to 0.</caption>
+   * var m = Matrix.ones(2); // Matrix m: [1 1; 1 1]
+   * m.zeros();              // Matrix m: [0 0; 0 0]
    */
   zeros() {
     for (let i = 0; i < this.rows; i++) {
@@ -146,9 +204,18 @@ class Matrix {
    * of rows of zeros and specified number of columns of zeros. 
    * If the number of columns is not specified, then the matrix 
    * will be a square matrix of dimensions rows x rows.
+   * @example <caption>Example of making a zero matrix using 
+   * both parameters.</caption>
+   * // Matrix: [0 0]
+   * Matrix.zeros(1, 2);
+   * @example <caption>Example of making a square matrix using 
+   * only the first parameter.</caption>
+   * // Matrix: [0 0; 0 0]
+   * Matrix.zeros(2);
    * @param {Number} rows - The number of rows of zeros.
    * @param {Number} cols - The number of columns of zeros.
-   * @return {Matrix} The new matrix with the specified rows of zeros and specified columns of zeros.
+   * @return {Matrix} The new matrix with the specified rows of 
+   * zeros and specified columns of zeros.
    */
   static zeros(rows, cols) {
     return new Matrix(rows, cols ? cols : rows);
@@ -156,6 +223,10 @@ class Matrix {
   
   /**
    * Sets all entries of the matrix to 1.
+   * @example <caption>Example of setting all entries of a 2x3 
+   * zero matrix to 1.</caption>
+   * var m = new Matrix(2, 3); // Matrix m: [0 0 0; 0 0 0]
+   * m.ones();                 // Matrix m: [1 1 1; 1 1 1]
    */
   ones() {
     for (let i = 0; i < this.rows; i++) {
@@ -170,6 +241,14 @@ class Matrix {
    * of rows of ones ad specified number of columns of ones.
    * If the number of columns is not specified, then the matrix 
    * will be a square matrix of dimensions rows x rows.
+   * @example <caption>Example of making a matrix of ones using 
+   * both parameters.</caption>
+   * // Matrix: [1 1; 1 1; 1 1]
+   * Matrix.ones(3, 2);
+   * @example <caption>Example of making a square matrix using 
+   * only the first parameter.</caption>
+   * // Matrix: [1 1; 1 1]
+   * Matrix.ones(2);
    * @param {Number} rows = The number of rows of ones.
    * @param {Number} cols - The number of columns of ones.
    * @return {Matrix} The new matrix with the specified rows of ones and specified columns of ones.
@@ -200,6 +279,9 @@ class Matrix {
   
   /**
    * Creates an identity matrix of specified size
+   * @example <caption>Example of making an 2x2 identity 
+   * matrix.</caption>
+   * 
    * @param {Number} size - The size of the identity matrix.
    * @return {Matrix} The identity matrix of given size.
    */
@@ -356,8 +438,14 @@ class Matrix {
    * Multiplies the current matrix by another matrix 
    * row by column.
    * @param {Matrix} matrix - The matrix to multiply the current matrix by.
+   * @throws {InnerDimensions} The left matrix must have the 
+   * same number of columns as the right matrix's rows.
    */
   multiply(matrix) {
+    // Make sure that inner dimensions agree
+    if (this.cols !== matrix.rows)
+      throw new InnerDimensions(this, matrix);
+    
     var product = []; // Array to store product elements in
     
     // Loop to multiply matrices row by column
@@ -386,6 +474,10 @@ class Matrix {
    * @return {Matrix} The result of the left matrix multiplied by the right matrix.
    */
   static multiply(matrix1, matrix2) {
+    // Make sure that inner dimensions agree
+    if (matrix1.cols !== matrix2.rows)
+      throw new InnerDimensions(matrix1, matrix2);
+    
     var prodMatrix = new Matrix(matrix1.rows, matrix2.cols); // Initialize resulting matrix
     var product = []; // Array to store product in
     
@@ -407,11 +499,27 @@ class Matrix {
   }
   
   /**
-   * Scales a matrix by a given scalar.
+   * Scales the current matrix by a given scalar.
    * @param {Number} k - What to scale the matrix by.
    */
   scale(k) {
     this.matrix = this.matrix.map(x => x.map(y => k * y));
+  }
+  
+  /**
+   * Scales a given matrix by a given scalar.
+   * @param {Matrix} matrix - The matrix to scale.
+   * @param {Number} k - What the scale the input matrix by.
+   * @return {Matrix} The resulting matrix after scaling the input matrix.
+   */
+  static scale(matrix, k) {
+    // Save a copy of the input matrix
+    var scaled = new Matrix(matrix.rows, matrix.cols);
+    scaled.matrix = JSON.parse(JSON.stringify(matrix.matrix));
+    
+    // Scale the copied matrix and return it
+    scaled.matrix = scaled.matrix.map(x => x.map(y => k * y));
+    return scaled;
   }
   
   /**
@@ -452,8 +560,13 @@ class Matrix {
   /**
    * Finds the determinant of the current matrix.
    * @return {Number} The determinant of the matrix.
+   * @throws {NonsquareMatrix} Cannot find determinant of nonsquare matrices.
    */
   determinant() {
+    // We can only find determinants of square matrices
+    if (this.rows !== this.cols)
+      throw new NonsquareMatrix(this, "Cannot find determinant");
+    
     // If the matrix is 1x1...
     if (this.rows === 1) return this.get(0, 0);
     
@@ -480,9 +593,13 @@ class Matrix {
   
   /**
    * Inverts the current matrix
+   * @throws {ZeroDeterminant} Matrices with determinants of 0 
+   * cannot be inverted.
    */
   inverse() {
     var det = this.determinant();
+    if (det === 0)
+      throw new ZeroDeterminant();
     
     // Special case for 1x1 matrix
     if (this.rows === 1) {
@@ -569,3 +686,6 @@ class Matrix {
     return str;
   }
 }
+
+var m = Matrix.ones(2);
+console.log(m);
